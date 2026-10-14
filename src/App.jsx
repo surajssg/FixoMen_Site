@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 
 const product = {
@@ -38,6 +38,12 @@ const looks = [
   { image: 'messy-texture.png', title: 'Messy Texture', number: '04' },
 ]
 
+const heroSlides = [
+  { image: 'fixo-premium-hair-wax-in-mist.png', alt: 'FIXO MEN Premium Hair Wax jar surrounded by mist', caption: 'The FIXO MEN styling essential' },
+  { image: 'hero-img-2.png', alt: 'FIXO MEN Premium Hair Wax with strong hold and a natural look', caption: 'Strong hold. Natural look.' },
+  { image: 'hero-img-3.png', alt: 'FIXO MEN Premium Hair Wax with texture and styling definition', caption: 'Style. Texture. Confidence.' },
+]
+
 const navigation = [
   ['Home', '#home'],
   ['Shop', '#shop'],
@@ -45,6 +51,19 @@ const navigation = [
   ['How to Use', '#how-to'],
   ['About Us', '#about'],
   ['Contact Us', '#contact'],
+]
+
+const termsSections = [
+  { title: '1. Products & Information', body: 'FIXO MEN Premium Hair Wax is designed to provide hold, texture, and definition for hairstyling. Product images are for illustrative purposes; minor differences in appearance or packaging may occur. Please check the product label for ingredients, directions, and precautions before use.' },
+  { title: '2. Orders & Payments', body: 'All orders are subject to product availability and order confirmation. Prices, applicable taxes, shipping charges, and the final payable amount will be displayed or communicated before order confirmation. We reserve the right to cancel an order where necessary, including in cases of stock unavailability or suspected fraudulent activity.' },
+  { title: '3. Shipping & Delivery', body: 'Delivery timelines are estimates and may vary depending on the delivery location, courier service, weather, or other circumstances beyond our control. Please provide accurate delivery and contact details when placing an order.' },
+  { title: '4. Returns, Replacements & Refunds', body: 'If you receive a damaged, defective, incorrect, or tampered product, please contact our customer support team promptly with your order details and supporting photographs. Return, replacement, and refund requests will be reviewed according to our applicable policy and consumer rights. Hygiene-sensitive products may be subject to reasonable return conditions, as permitted by applicable law.' },
+  { title: '5. Product Use & Safety', body: 'Use the product as directed on its packaging. For external use only. Avoid contact with eyes. Discontinue use if irritation occurs. Keep out of reach of children. Individual styling results may vary depending on hair type and application.' },
+  { title: '6. Website Content & Intellectual Property', body: 'The FIXO MEN name, logo, product images, website design, and other original content may not be copied, reproduced, or used commercially without prior permission, except where permitted by law.' },
+  { title: '7. Privacy', body: 'Personal information submitted through our website may be used to process orders, coordinate delivery, respond to enquiries, and provide customer support, in accordance with our Privacy Policy.' },
+  { title: '8. Limitation of Liability', body: 'Nothing in these Terms excludes or limits any consumer rights or liability that cannot legally be excluded under applicable law. We are not responsible for interruptions or delays caused by circumstances beyond our reasonable control.' },
+  { title: '9. Changes to These Terms', body: 'We may update these Terms & Conditions from time to time. The latest version will be published on our website.' },
+  { title: '10. Contact Us', body: 'For product-related questions or order assistance:', contact: true },
 ]
 
 const iconPaths = {
@@ -59,6 +78,7 @@ const iconPaths = {
   bag: <><path d="M5 8h14l1 13H4L5 8Z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></>,
   phone: <><path d="M8 3H5a2 2 0 0 0-2 2c0 8.8 7.2 16 16 16a2 2 0 0 0 2-2v-3l-5-2-2 3a14 14 0 0 1-7-7l3-2-2-5Z" /></>,
   pin: <><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></>,
+  whatsapp: <><path d="M20.4 11.7a8.4 8.4 0 0 1-12.2 7.5L4 20.4l1.3-4.1a8.4 8.4 0 1 1 15.1-4.6Z" /><path d="M9 8.5c.2-.4.4-.5.7-.5h.5c.2 0 .3.1.4.4l.7 1.5c.1.2.1.4-.1.6l-.5.6c-.2.2-.2.4-.1.6.4.7 1 1.3 1.7 1.7.2.1.4.1.6-.1l.6-.6c.2-.2.4-.2.6-.1l1.5.7c.3.1.4.3.4.5 0 .4-.2.9-.5 1.2-.4.4-1 .7-1.7.7-.5 0-1-.1-1.6-.4-1.5-.7-2.8-1.9-3.8-3.3-.6-.8-.9-1.7-.9-2.4 0-.6.3-1.2.7-1.6Z" /></>,
   menu: <><path d="M4 7h16M4 12h16M4 17h16" /></>,
   close: <><path d="m6 6 12 12M18 6 6 18" /></>,
   arrow: <><path d="M4 12h15m-6-6 6 6-6 6" /></>,
@@ -119,19 +139,47 @@ function App() {
   const [cartOpen, setCartOpen] = useState(false)
   const [quantity, setQuantity] = useState(0)
   const [contactNotice, setContactNotice] = useState('')
+  const [orderNotice, setOrderNotice] = useState('')
   const [viewedImage, setViewedImage] = useState(null)
+  const [termsOpen, setTermsOpen] = useState(false)
+  const [heroSlide, setHeroSlide] = useState(0)
+  const [heroPaused, setHeroPaused] = useState(false)
+  const termsTriggerRef = useRef(null)
   const productMatches = product.name.toLowerCase().includes(searchTerm.trim().toLowerCase())
 
+  const closeTerms = () => {
+    setTermsOpen(false)
+    termsTriggerRef.current?.focus()
+  }
+
   useEffect(() => {
-    if (!cartOpen && !viewedImage) return undefined
+    if (!cartOpen && !viewedImage && !termsOpen) return undefined
     const closeOnEscape = (event) => {
       if (event.key !== 'Escape') return
       if (viewedImage) setViewedImage(null)
+      else if (termsOpen) closeTerms()
       else setCartOpen(false)
     }
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [cartOpen, viewedImage])
+  }, [cartOpen, viewedImage, termsOpen])
+
+  useEffect(() => {
+    if (!termsOpen) return undefined
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [termsOpen])
+
+  useEffect(() => {
+    if (heroPaused || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+    const timer = window.setInterval(() => {
+      setHeroSlide((current) => (current + 1) % heroSlides.length)
+    }, 6000)
+    return () => window.clearInterval(timer)
+  }, [heroPaused])
 
   const openImageViewer = (file, alt) => {
     setViewedImage({ src: `/Project_Images/${file}`, alt })
@@ -197,14 +245,51 @@ function App() {
               {['Strong hold', 'Matte finish', 'Non-sticky feel', 'Easy restyling'].map((item) => <li key={item}>{item}</li>)}
             </ul>
           </div>
-          <div className="hero-art-wrap">
-            <div className="hero-art-frame">
-              <ImagePanel files={['fixo-premium-hair-wax-in-mist.png', 'hero-banner.jpg', 'hero-model.jpg']} alt="FIXO MEN Premium Hair Wax jar surrounded by mist" className="hero-art" fallbackTitle="FIXO MEN" fallbackCopy="Premium Hair Wax · 50 g" />
-              <div className="hero-stamp"><span>01</span><span>FORM<br />MEETS<br />FREEDOM</span></div>
+          <div
+            className="hero-art-wrap"
+            role="region"
+            aria-label="FIXO MEN hero carousel"
+            aria-roledescription="carousel"
+            onMouseEnter={() => setHeroPaused(true)}
+            onMouseLeave={() => setHeroPaused(false)}
+            onFocus={() => setHeroPaused(true)}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) setHeroPaused(false)
+            }}
+          >
+            <div className="hero-art-frame" aria-live={heroPaused ? 'polite' : 'off'}>
+              <ImagePanel
+                key={heroSlides[heroSlide].image}
+                files={[heroSlides[heroSlide].image]}
+                alt={heroSlides[heroSlide].alt}
+                className={`hero-art${heroSlide === 0 ? ' hero-art-portrait' : ''}`}
+                fallbackTitle="FIXO MEN"
+                fallbackCopy="Premium Hair Wax · 50 g"
+              />
+              <button className="hero-carousel-arrow hero-carousel-previous" type="button" aria-label="Previous hero image" onClick={() => setHeroSlide((current) => (current - 1 + heroSlides.length) % heroSlides.length)}>
+                <Icon name="arrow" size={18} />
+              </button>
+              <button className="hero-carousel-arrow hero-carousel-next" type="button" aria-label="Next hero image" onClick={() => setHeroSlide((current) => (current + 1) % heroSlides.length)}>
+                <Icon name="arrow" size={18} />
+              </button>
             </div>
-            <span className="hero-caption">The FIXO MEN styling essential</span>
+            <div className="hero-carousel-meta">
+              <span className="hero-caption">{heroSlides[heroSlide].caption}</span>
+              <div className="hero-carousel-dots" role="group" aria-label="Choose a hero image">
+                {heroSlides.map((slide, index) => (
+                  <button
+                    className={`hero-carousel-dot${heroSlide === index ? ' is-active' : ''}`}
+                    key={slide.image}
+                    type="button"
+                    aria-label={`Show hero image ${index + 1}: ${slide.caption}`}
+                    aria-current={heroSlide === index ? 'true' : undefined}
+                    onClick={() => setHeroSlide(index)}
+                  />
+                ))}
+              </div>
+              <span className="hero-carousel-count" aria-hidden="true">0{heroSlide + 1} / 0{heroSlides.length}</span>
+            </div>
           </div>
-          <span className="hero-index" aria-hidden="true">01 / 04</span>
         </section>
 
         <section className="highlight-strip" aria-label="Product highlights">
@@ -326,7 +411,7 @@ function App() {
         </section>
 
         <section className="about-section section-pad" id="about">
-          <div className="about-image-wrap"><ImagePanel files={['about-banner.jpg']} alt="FIXO MEN men's grooming campaign" className="about-image" fallbackTitle="FIXO MEN" fallbackCopy="Built around your style" /></div>
+          <div className="about-image-wrap"><ImagePanel files={['built-around-your-style.png']} alt="FIXO MEN Premium Hair Wax jar on a dark grooming counter" className="about-image" fallbackTitle="FIXO MEN" fallbackCopy="Built around your style" /></div>
           <div className="about-copy">
             <p className="eyebrow eyebrow-dark">A modern grooming mindset</p>
             <h2>Built around<br /><em>your style.</em></h2>
@@ -370,6 +455,7 @@ function App() {
             <a href="#shop" className="button button-gold">Shop Hair Wax <Icon name="arrow" size={17} /></a>
           </div>
         </section>
+
       </main>
 
       <footer className="site-footer">
@@ -384,8 +470,9 @@ function App() {
           </div>
           <div className="footer-links footer-policy-links">
             <h2>Policies</h2>
-            {['Privacy Policy', 'Shipping Policy', 'Return Policy', 'Terms & Conditions'].map((label) => <a key={label} href="#policy-notice" title={`${label}: not yet published`}>{label} <span>Not published</span></a>)}
-            <p id="policy-notice">Policy documents have not been provided yet.</p>
+            {['Privacy Policy', 'Shipping Policy', 'Return Policy'].map((label) => <a key={label} href="#policy-notice" title={`${label}: not yet published`}>{label} <span>Not published</span></a>)}
+            <button ref={termsTriggerRef} className="footer-terms-button" type="button" onClick={() => setTermsOpen(true)}>Terms &amp; Conditions</button>
+            <p id="policy-notice">Other policy documents have not been provided yet.</p>
           </div>
           <div className="footer-contact">
             <h2>Contact</h2>
@@ -396,6 +483,46 @@ function App() {
         </div>
         <div className="footer-bottom"><span>© {new Date().getFullYear()} FIXO MEN</span><span>Own Your Style. Define Your Look.</span></div>
       </footer>
+
+      <a className="whatsapp-float" href="https://wa.me/9730520227" target="_blank" rel="noreferrer" aria-label="Chat with FIXO MEN on WhatsApp" title="Chat with FIXO MEN on WhatsApp">
+        <Icon name="whatsapp" size={27} />
+      </a>
+
+      {termsOpen && (
+        <div className="terms-modal-layer">
+          <button className="terms-modal-scrim" type="button" aria-label="Dismiss Terms & Conditions backdrop" onClick={closeTerms} />
+          <section className="terms-modal" role="dialog" aria-modal="true" aria-labelledby="terms-modal-title">
+            <header className="terms-modal-header">
+              <div>
+                <p className="eyebrow eyebrow-dark">FIXO MEN · LEGAL</p>
+                <h2 id="terms-modal-title">Terms &amp; Conditions</h2>
+                <p className="terms-updated">Last Updated: 14 October 2026</p>
+              </div>
+              <button className="icon-button terms-modal-close" type="button" aria-label="Close Terms & Conditions" onClick={closeTerms} autoFocus><Icon name="close" /></button>
+            </header>
+            <div className="terms-modal-body" tabIndex="0">
+              <p className="terms-intro">Welcome to FIXO MEN. By accessing our website or placing an order, you agree to the following Terms &amp; Conditions.</p>
+              <div className="terms-list">
+                {termsSections.map((section) => (
+                  <article className="terms-item" key={section.title}>
+                    <h3>{section.title}</h3>
+                    <p>{section.body}</p>
+                    {section.contact && (
+                      <address className="terms-contact">
+                        <strong>FIXO MEN GROOMING CO.</strong>
+                        <span>Shop No. 3, Sadashiv Complex, Dhabadi, Vadgaon, Pune, Maharashtra – 411041</span>
+                        <span>Customer Care: <a href="tel:+919730520227">+91 97305 20227</a></span>
+                        <span>Email: <a href="mailto:supportatfixomen@gmail.com">supportatfixomen@gmail.com</a></span>
+                      </address>
+                    )}
+                  </article>
+                ))}
+              </div>
+              <p className="terms-acknowledgement">By proceeding with an order, you acknowledge that you have read these Terms &amp; Conditions.</p>
+            </div>
+          </section>
+        </div>
+      )}
 
       {cartOpen && (
         <div className="cart-layer">
@@ -412,7 +539,11 @@ function App() {
                 <div className="cart-item-info"><h3>{product.name}</h3><p>{product.size} · {product.priceLabel}</p><div className="quantity-control"><button type="button" aria-label="Remove one hair wax from bag" onClick={() => setQuantity((value) => Math.max(0, value - 1))}><Icon name="minus" size={15} /></button><span>{quantity}</span><button type="button" aria-label="Add one hair wax to bag" onClick={() => setQuantity((value) => value + 1)}><Icon name="plus" size={15} /></button></div></div>
               </div>
             )}
-            <p className="cart-disclaimer">No checkout or payment is available on this static site.</p>
+            <div className="cart-checkout">
+              <button className="button button-dark cart-place-order" type="button" disabled={quantity === 0} onClick={() => setOrderNotice('Online ordering is not available on this static site. Your bag has not been submitted.')}>Place Order <Icon name="arrow" size={17} /></button>
+              <p className="cart-order-notice" role="status" aria-live="polite">{orderNotice}</p>
+              <p className="cart-disclaimer">No checkout or payment is available on this static site.</p>
+            </div>
           </aside>
         </div>
       )}
