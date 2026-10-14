@@ -60,7 +60,7 @@ const testimonials = [
   },
 ]
 
-const AboutUs = () => {
+const AboutUs = ({ hideFooter = false }) => {
   const [teamIndex, setTeamIndex] = useState(0)
   const [testimonialIndex, setTestimonialIndex] = useState(0)
 
@@ -183,33 +183,35 @@ const AboutUs = () => {
         </section>
       </div>
 
-      <footer style={styles.footer}>
-        <div style={styles.footerContainer} className="about-footer-container">
-          <div style={styles.footerBrand}>
-            <div style={styles.footerLogo}>Ritual365</div>
-            <div style={styles.footerAddress}>shop 202, Gultekdi Market Yard, Pune, 411 042</div>
-            <div style={styles.footerMeta}>
-              Email: <a href="mailto:hello@ritual365.in" style={styles.link}>hello@ritual365.com</a>
+      {!hideFooter && (
+        <footer style={styles.footer}>
+          <div style={styles.footerContainer} className="about-footer-container">
+            <div style={styles.footerBrand}>
+              <div style={styles.footerLogo}>Ritual365</div>
+              <div style={styles.footerAddress}>shop 202, Gultekdi Market Yard, Pune, 411 042</div>
+              <div style={styles.footerMeta}>
+                Email: <a href="mailto:hello@ritual365.in" style={styles.link}>hello@ritual365.com</a>
+              </div>
+              <div style={styles.footerMeta}>
+                Phone: <a href="tel:+91 9763972505" style={styles.link}>+91 9763972505</a>
+              </div>
+              <div style={styles.footerMeta}>
+                Website: <a href="https://ritual365.in" target="_blank" rel="noreferrer" style={styles.link}>ritual365.in</a>
+              </div>
             </div>
-            <div style={styles.footerMeta}>
-              Phone: <a href="tel:+91 9763972505" style={styles.link}>+91 9763972505</a>
-            </div>
-            <div style={styles.footerMeta}>
-              Website: <a href="https://ritual365.in" target="_blank" rel="noreferrer" style={styles.link}>ritual365.in</a>
+            <div style={styles.footerActions}>
+              <button
+                style={styles.contactBtn}
+                onClick={() => {
+                  window.dispatchEvent(new Event('openContactModal'))
+                }}
+              >
+                Contact Us
+              </button>
             </div>
           </div>
-          <div style={styles.footerActions}>
-            <button
-              style={styles.contactBtn}
-              onClick={() => {
-                window.dispatchEvent(new Event('openContactModal'))
-              }}
-            >
-              Contact Us
-            </button>
-          </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </section>
   )
 }
