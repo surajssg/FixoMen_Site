@@ -80,7 +80,10 @@ const handleDeliveryError = (response, error) => {
     address: error.address,
     port: error.port,
   })
-  return response.status(502).json({ error: 'The email could not be sent. Please try again.' })
+  return response.status(502).json({
+    error: 'The email could not be sent. Please try again.',
+    code: error.code || 'SMTP_SEND_FAILED',
+  })
 }
 
 export const emailHealth = (_request, response) => {
