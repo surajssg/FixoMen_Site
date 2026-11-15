@@ -22,6 +22,14 @@ const emailLimit = rateLimit({
 
 app.use(express.json({ limit: '12kb' }))
 
+const hasEmailConfiguration = () =>
+  ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'CONTACT_EMAIL']
+    .every((key) => Boolean(process.env[key]))
+
+app.get('/api/health', (_request, response) => {
+  response.json({ api: 'ok', smtpConfigurationPresent: hasEmailConfiguration() })
+})
+
 const trimmedString = (value, maxLength) => {
   if (typeof value !== 'string') return ''
   return value.trim().slice(0, maxLength)
@@ -63,7 +71,14 @@ const handleDeliveryError = (response, error) => {
     return response.status(503).json({ error: 'Email is not configured on the server yet.' })
   }
 
-  console.error('Email delivery failed:', error.code || 'unknown error')
+  console.error('Email delivery failed:', {
+    code: error.code || 'unknown error',
+    command: error.command,
+    responseCode: error.responseCode,
+    syscall: error.syscall,
+    address: error.address,
+    port: error.port,
+  })
   return response.status(502).json({ error: 'The email could not be sent. Please try again.' })
 }
 
