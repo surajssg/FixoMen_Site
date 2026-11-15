@@ -14,6 +14,24 @@ const trimmedString = (value, maxLength) => {
 
 const validEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 
+const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+})[character])
+
+const renderEmail = (title, sections) => {
+  const sectionHtml = sections.map(({ heading, rows }) => `
+    <tr><td style="padding:24px 28px 8px;color:#8a6d30;font-size:12px;font-weight:bold;text-transform:uppercase;">${escapeHtml(heading)}</td></tr>
+    <tr><td style="padding:0 28px 12px;"><table role="presentation" style="width:100%;border-collapse:collapse;">
+      ${rows.map(([label, value]) => `<tr><td style="padding:10px 12px;border-bottom:1px solid #e8e5de;color:#68645e;font-size:13px;vertical-align:top;width:36%;">${escapeHtml(label)}</td><td style="padding:10px 12px;border-bottom:1px solid #e8e5de;color:#232323;font-size:14px;line-height:1.5;overflow-wrap:anywhere;">${escapeHtml(value).replace(/\r\n|\r|\n/g, '<br>')}</td></tr>`).join('')}
+    </table></td></tr>`).join('')
+
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0;padding:24px 12px;background:#f3f3f1;font-family:Arial,sans-serif;"><table role="presentation" style="width:100%;max-width:620px;margin:0 auto;border-collapse:collapse;background:#ffffff;"><tr><td style="padding:26px 28px;background:#171717;color:#ffffff;"><p style="margin:0 0 12px;color:#d4ad58;font-size:13px;font-weight:bold;">FIXO MEN</p><h1 style="margin:0;font-size:24px;line-height:1.25;">${escapeHtml(title)}</h1></td></tr>${sectionHtml}<tr><td style="padding:20px 28px;background:#171717;color:#cfcfcf;font-size:12px;line-height:1.5;">FIXO MEN &middot; Website notification</td></tr></table></body></html>`
+}
+
 const allowEmailRequest = (request, response) => {
   const forwardedFor = request.headers['x-forwarded-for']
   const clientIp = (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor)?.split(',')[0].trim()
@@ -56,7 +74,7 @@ const createTransporter = () => {
   })
 }
 
-const sendOwnerEmail = async ({ subject, text, replyTo }) => {
+const sendOwnerEmail = async ({ subject, text, replyTo, title, sections }) => {
   const transporter = createTransporter()
   await transporter.sendMail({
     from: process.env.SMTP_USER,
@@ -64,6 +82,7 @@ const sendOwnerEmail = async ({ subject, text, replyTo }) => {
     replyTo,
     subject,
     text,
+    html: renderEmail(title, sections),
   })
 }
 
@@ -110,6 +129,11 @@ export const sendEnquiry = async (request, response) => {
       subject: 'New FIXO MEN website enquiry',
       replyTo: email,
       text: `Website enquiry\n\nName: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,
+      title: 'New website enquiry',
+      sections: [
+        { heading: 'Contact details', rows: [['Name', name], ['Email', email]] },
+        { heading: 'Message', rows: [['Enquiry', message]] },
+      ],
     })
     return response.json({ message: 'Enquiry sent.' })
   } catch (error) {
@@ -142,6 +166,12 @@ export const sendBulkEnquiry = async (request, response) => {
     await sendOwnerEmail({
       subject: `FIXO MEN bulk enquiry from ${company}`,
       replyTo: email,
+      title: 'New bulk purchase enquiry',
+      sections: [
+        { heading: 'Business details', rows: [['Buyer type', buyerType], ['Business', company], ['Estimated quantity', `${quantity} units`]] },
+        { heading: 'Contact details', rows: [['Contact person', name], ['Email', email], ['Phone', phone]] },
+        { heading: 'Message', rows: [['Enquiry', message || 'No additional message provided.']] },
+      ],
       text: [
         'New FIXO MEN bulk purchase enquiry',
         '',
@@ -183,6 +213,11 @@ export const sendOrder = async (request, response) => {
     await sendOwnerEmail({
       subject: `New FIXO MEN order request ${orderReference}`,
       replyTo: email,
+      title: 'New hair wax order request',
+      sections: [
+        { heading: 'Order details', rows: [['Reference', orderReference], ['Product', `FIXO MEN Premium Hair Wax (${productSize})`], ['Quantity', quantity], ['Unit price', `Rs. ${productUnitPrice}/-`], ['Product total (shipping not included)', `Rs. ${productUnitPrice * quantity}/-`]] },
+        { heading: 'Customer details', rows: [['Name', name], ['Email', email], ['Phone', phone], ['Delivery address', address]] },
+      ],
       text: [
         'New hair wax order request',
         `Reference: ${orderReference}`,
