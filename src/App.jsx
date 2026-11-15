@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import './App.css'
+import BulkInquiry from './Components/BulkInquiry'
 
 const product = {
   id: 'fixo-premium-hair-wax',
   name: 'FIXO MEN Premium Hair Wax',
   size: '50 g',
-  priceLabel: 'Price to be confirmed',
+  priceLabel: 'Rs. 350/-',
   description:
     'A premium cream hair wax that provides long-lasting hold, texture and definition without stickiness. Helps create structured hairstyles while keeping hair soft, manageable and natural-looking.',
 }
@@ -139,7 +140,9 @@ function App() {
   const [cartOpen, setCartOpen] = useState(false)
   const [quantity, setQuantity] = useState(0)
   const [contactNotice, setContactNotice] = useState('')
+  const [contactSending, setContactSending] = useState(false)
   const [orderNotice, setOrderNotice] = useState('')
+  const [orderSending, setOrderSending] = useState(false)
   const [viewedImage, setViewedImage] = useState(null)
   const [termsOpen, setTermsOpen] = useState(false)
   const [heroSlide, setHeroSlide] = useState(0)
@@ -192,10 +195,72 @@ function App() {
 
   const closeMenu = () => setMenuOpen(false)
 
-  const submitContact = (event) => {
+  const scrollToShop = (event) => {
     event.preventDefault()
-    setContactNotice('Your details are valid, but this form is not connected to a server. Nothing was sent.')
-    event.currentTarget.reset()
+    const purchaseRow = document.querySelector('#shop .product-buy-row')
+    if (!purchaseRow) return
+    const headerHeight = document.querySelector('.site-header')?.offsetHeight ?? 0
+    const top = purchaseRow.getBoundingClientRect().top + window.scrollY - headerHeight - 12
+    window.scrollTo({ top: Math.max(0, top), behavior: 'instant' })
+    if (window.location.hash !== '#shop') window.history.replaceState(null, '', '#shop')
+  }
+
+  const postEmailRequest = async (endpoint, payload) => {
+    const response = await fetch(`/api/${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const result = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(result.error || 'The request could not be sent.')
+    return result
+  }
+
+  const submitContact = async (event) => {
+    event.preventDefault()
+    const form = event.currentTarget
+    const formData = new FormData(form)
+    setContactSending(true)
+    setContactNotice('Sending your enquiry...')
+    try {
+      await postEmailRequest('enquiries', {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        message: formData.get('message'),
+        website: formData.get('website'),
+      })
+      form.reset()
+      setContactNotice('Your enquiry has been sent. We’ll get back to you soon.')
+    } catch (error) {
+      setContactNotice(error.message || 'We could not send your enquiry. Please try again.')
+    } finally {
+      setContactSending(false)
+    }
+  }
+
+  const submitOrder = async (event) => {
+    event.preventDefault()
+    const form = event.currentTarget
+    const formData = new FormData(form)
+    setOrderSending(true)
+    setOrderNotice('Sending your order request...')
+    try {
+      const result = await postEmailRequest('orders', {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        phone: formData.get('phone'),
+        address: formData.get('address'),
+        website: formData.get('website'),
+        quantity,
+      })
+      form.reset()
+      setQuantity(0)
+      setOrderNotice(`Order request ${result.reference} sent. We’ll contact you to confirm availability and delivery.`)
+    } catch (error) {
+      setOrderNotice(error.message || 'We could not send your order request. Please try again.')
+    } finally {
+      setOrderSending(false)
+    }
   }
 
   return (
@@ -238,7 +303,7 @@ function App() {
             <h1>Own Your Style.<br /><em>Define Your Look.</em></h1>
             <p className="hero-description">Discover FIXO MEN Premium Hair Wax, designed to help create structured hairstyles with texture, definition and a natural-looking matte finish.</p>
             <div className="hero-actions">
-              <a className="button button-gold" href="#shop">Shop Hair Wax <Icon name="arrow" size={17} /></a>
+              <a className="button button-gold" href="#shop" onClick={scrollToShop}>Shop Hair Wax <Icon name="arrow" size={17} /></a>
               <a className="button button-outline" href="#about">Discover FIXO MEN</a>
             </div>
             <ul className="hero-points" aria-label="Product features">
@@ -304,7 +369,7 @@ function App() {
           </div>
         </section>
 
-        <section className="product-section section-pad" id="shop">
+        <section className="product-editorial-section section-pad" aria-label="One essential. Endless expression.">
           <div className="product-editorial">
             <ImagePanel
               files={['one-essential-endless-expression.png']}
@@ -314,6 +379,9 @@ function App() {
               fallbackCopy="FIXO MEN Premium Hair Wax"
             />
           </div>
+        </section>
+
+        <section className="product-section section-pad" id="shop">
           {!productMatches ? (
             <p className="search-empty" role="status">No products match “{searchTerm}”. Try “hair wax”.</p>
           ) : (
@@ -353,11 +421,14 @@ function App() {
                   <span className="price-label">{product.priceLabel}</span>
                   <button className="button button-dark" type="button" onClick={addToCart}>Add to bag <Icon name="arrow" size={17} /></button>
                 </div>
-                <p className="product-note">Product availability and final pricing have not been provided.</p>
+                <p className="product-note">Shipping and availability will be confirmed by our team.</p>
+                <a className="bulk-product-link" href="#bulk">Buying for a business? Request bulk pricing <Icon name="arrow" size={16} /></a>
               </div>
             </div>
           )}
         </section>
+
+        <BulkInquiry />
 
         <section className="why-section section-dark section-pad" id="why-fixo">
           <div className="section-intro centered">
@@ -411,7 +482,7 @@ function App() {
         </section>
 
         <section className="about-section section-pad" id="about">
-          <div className="about-image-wrap"><ImagePanel files={['built-around-your-style.png']} alt="FIXO MEN Premium Hair Wax jar on a dark grooming counter" className="about-image" fallbackTitle="FIXO MEN" fallbackCopy="Built around your style" /></div>
+          <div className="about-image-wrap"><ImagePanel files={['hero-img-2.png']} alt="FIXO MEN Premium Hair Wax campaign banner with strong hold, natural look, texture and styling benefits" className="about-image" fallbackTitle="FIXO MEN" fallbackCopy="Built around your style" /></div>
           <div className="about-copy">
             <p className="eyebrow eyebrow-dark">A modern grooming mindset</p>
             <h2>Built around<br /><em>your style.</em></h2>
@@ -431,16 +502,17 @@ function App() {
               <a href="mailto:supportatfixomen@gmail.com"><Icon name="mail" size={17} /> supportatfixomen@gmail.com</a>
               <address><Icon name="pin" size={17} /><span>Shop No. 3, Sadashiv Complex, Dhabadi,<br />Vadgaon Pune, Maharashtra - 411041</span></address>
             </div>
-            <p className="contact-status">This form is a front-end preview only. It does not send or store your message.</p>
+            <p className="contact-status">Send an enquiry to our team using the form.</p>
           </div>
           <form className="contact-form" onSubmit={submitContact}>
             <label htmlFor="contact-name">Your name</label>
-            <input id="contact-name" name="name" autoComplete="name" required />
+            <input id="contact-name" name="name" autoComplete="name" maxLength="100" required />
             <label htmlFor="contact-email">Email address</label>
-            <input id="contact-email" name="email" type="email" autoComplete="email" required />
+            <input id="contact-email" name="email" type="email" autoComplete="email" maxLength="254" required />
             <label htmlFor="contact-message">Your message</label>
-            <textarea id="contact-message" name="message" rows="3" required />
-            <button className="button button-dark" type="submit">Validate message <Icon name="arrow" size={17} /></button>
+            <textarea id="contact-message" name="message" rows="3" maxLength="5000" required />
+            <div className="form-trap" aria-hidden="true"><label htmlFor="contact-website">Leave this field empty</label><input id="contact-website" name="website" tabIndex="-1" autoComplete="off" /></div>
+            <button className="button button-dark" type="submit" disabled={contactSending}>{contactSending ? 'Sending enquiry...' : 'Send Enquiry'} <Icon name="arrow" size={17} /></button>
             <p className="form-notice" role="status" aria-live="polite">{contactNotice}</p>
           </form>
         </section>
@@ -452,7 +524,7 @@ function App() {
             <p className="eyebrow"><span /> Your style, your signature</p>
             <h2>Ready to define<br /><em>your look?</em></h2>
             <p>Make every day a good hair day with FIXO MEN Premium Hair Wax.</p>
-            <a href="#shop" className="button button-gold">Shop Hair Wax <Icon name="arrow" size={17} /></a>
+            <a href="#shop" className="button button-gold" onClick={scrollToShop}>Shop Hair Wax <Icon name="arrow" size={17} /></a>
           </div>
         </section>
 
@@ -467,6 +539,7 @@ function App() {
           <div className="footer-links">
             <h2>Explore</h2>
             {navigation.map(([label, href]) => <a key={href} href={href}>{label}</a>)}
+            <a href="#bulk">Wholesale &amp; Distribution</a>
           </div>
           <div className="footer-links footer-policy-links">
             <h2>Policies</h2>
@@ -484,7 +557,7 @@ function App() {
         <div className="footer-bottom"><span>© {new Date().getFullYear()} FIXO MEN</span><span>Own Your Style. Define Your Look.</span></div>
       </footer>
 
-      <a className="whatsapp-float" href="https://wa.me/9730520227" target="_blank" rel="noreferrer" aria-label="Chat with FIXO MEN on WhatsApp" title="Chat with FIXO MEN on WhatsApp">
+      <a className="whatsapp-float" href="https://wa.me/9130450227" target="_blank" rel="noreferrer" aria-label="Chat with FIXO MEN on WhatsApp" title="Chat with FIXO MEN on WhatsApp">
         <Icon name="whatsapp" size={27} />
       </a>
 
@@ -539,11 +612,28 @@ function App() {
                 <div className="cart-item-info"><h3>{product.name}</h3><p>{product.size} · {product.priceLabel}</p><div className="quantity-control"><button type="button" aria-label="Remove one hair wax from bag" onClick={() => setQuantity((value) => Math.max(0, value - 1))}><Icon name="minus" size={15} /></button><span>{quantity}</span><button type="button" aria-label="Add one hair wax to bag" onClick={() => setQuantity((value) => value + 1)}><Icon name="plus" size={15} /></button></div></div>
               </div>
             )}
-            <div className="cart-checkout">
-              <button className="button button-dark cart-place-order" type="button" disabled={quantity === 0} onClick={() => setOrderNotice('Online ordering is not available on this static site. Your bag has not been submitted.')}>Place Order <Icon name="arrow" size={17} /></button>
-              <p className="cart-order-notice" role="status" aria-live="polite">{orderNotice}</p>
-              <p className="cart-disclaimer">No checkout or payment is available on this static site.</p>
-            </div>
+            {quantity > 0 ? (
+              <form className="cart-checkout" onSubmit={submitOrder}>
+                <p className="cart-form-title">Delivery details</p>
+                <label htmlFor="order-name">Full name</label>
+                <input id="order-name" name="name" autoComplete="name" maxLength="100" required />
+                <label htmlFor="order-email">Email address</label>
+                <input id="order-email" name="email" type="email" autoComplete="email" maxLength="254" required />
+                <label htmlFor="order-phone">Phone number</label>
+                <input id="order-phone" name="phone" type="tel" autoComplete="tel" maxLength="30" required />
+                <label htmlFor="order-address">Delivery address</label>
+                <textarea id="order-address" name="address" autoComplete="street-address" rows="2" maxLength="500" required />
+                <div className="form-trap" aria-hidden="true"><label htmlFor="order-website">Leave this field empty</label><input id="order-website" name="website" tabIndex="-1" autoComplete="off" /></div>
+                <button className="button button-dark cart-place-order" type="submit" disabled={orderSending}>{orderSending ? 'Sending request...' : 'Place Order'} <Icon name="arrow" size={17} /></button>
+                <p className="cart-order-notice" role="status" aria-live="polite">{orderNotice}</p>
+                <p className="cart-disclaimer">This sends an order request only. Our team will confirm availability and delivery details.</p>
+              </form>
+            ) : (
+              <div className="cart-checkout">
+                <p className="cart-order-notice" role="status" aria-live="polite">{orderNotice}</p>
+                <p className="cart-disclaimer">No checkout or payment is available on this site.</p>
+              </div>
+            )}
           </aside>
         </div>
       )}

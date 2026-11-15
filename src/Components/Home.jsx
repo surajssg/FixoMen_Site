@@ -342,7 +342,7 @@ const Home = () => {
             Facebook
           </a>
           <a
-            href="https://wa.me/7038937367"
+            href=""
             target="_blank"
             rel="noopener noreferrer"
             aria-label="WhatsApp"
@@ -406,7 +406,7 @@ const Home = () => {
       </footer>
 
       <a
-        href="https://wa.me/7038937367"
+        href=""
         target="_blank"
         rel="noopener noreferrer"
         className="whatsapp-float"
